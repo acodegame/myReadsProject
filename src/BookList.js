@@ -7,9 +7,8 @@ const BookList = memoize((props) => {
   if (shelfType === undefined) {
     return null;
   }
-  //console.log("**** In BookList.js ", props);
   const bookList = shelfType instanceof Array && shelfType.map((book, i) =>
-    <li key={i}>
+    <li key={book.id}>
       <Book
         bookCover={book.imageLinks && book.imageLinks.thumbnail}
         bookTitle={book.title}

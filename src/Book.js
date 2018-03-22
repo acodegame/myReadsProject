@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { update } from './BooksAPI';
-import { Link } from 'react-router-dom';
 
 class Book extends Component {
   constructor(props) {
@@ -20,7 +19,11 @@ class Book extends Component {
       const selectedShelf = event.target.value;
       this.setState({bookShelf: selectedShelf});
       update(this.props, selectedShelf).then(() => {
-        this.props.onUpdateShelf(this.props.id, selectedShelf);
+        // Updating shelf only when on MyCatalogue page, as on any other page if navigated to MyCatalogue,
+        // It already has the logic to get the recent updates from getAll in componentDidMount
+        if (this.props.onUpdateShelf) {
+          this.props.onUpdateShelf(this.props.id, selectedShelf);
+        }
       });
     };
 
@@ -29,7 +32,7 @@ class Book extends Component {
         <div className="book-top">
           <div className="book-cover" style={{ width: 128, height: 193, backgroundImage: `url(${ this.props.bookCover })` }}></div>
           <div className="book-shelf-changer">
-            <select name="selectedShelf" onChange={onUpdateShelf} value={this.state.bookShelf !== undefined ? this.state.bookShelf : "moveTo"}>
+            <select name="selectedShelf" onChange={onUpdateShelf} value={this.state.bookShelf !== undefined ? this.state.bookShelf : "none"}>
               <option value="moveTo" disabled>Move to...</option>
               <option value="currentlyReading">Currently Reading</option>
               <option value="wantToRead">Want to Read</option>

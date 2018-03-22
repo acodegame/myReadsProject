@@ -4,6 +4,10 @@ import * as BooksAPI from './BooksAPI';
 import BookList from './BookList';
 import { debounce } from 'throttle-debounce';
 
+// Declaring this so as to check if in callSearchAndSync promise, if query has already been cleared.
+// Otherwise Promise is setting the state of results of previous query.
+var queryState = undefined;
+
 class SearchPage extends Component {
   constructor(props) {
     super(props);
@@ -12,21 +16,22 @@ class SearchPage extends Component {
     };
     // Used debounce to give fast UX search and also to improve
     // in the number of ajax calls.
-    this.callAjax = debounce(400, this.callAjax);
+    this.callSearchAndSync = debounce(400, this.callSearchAndSync);
   }
 
   /*
    * This method gets called for each key event in search field.
-   * It is wrapping another method callAjax.
+   * It is wrapping another method callSearchAndSync.
    * This method is further wrapped in debounce.
    */
   updateQuery = (event) => {
-    const query = event.target.value;
-    if (!query.length) {
-      // Reset the search results to 0 once user has cleared his query.
-      this.setState({ results: undefined })
+    const query = event.target.value.trim();
+    queryState = query;
+    if (query.length) {
+      this.callSearchAndSync(query);
     } else {
-      this.callAjax(query);
+      // Reset the search results to 0 once user has cleared his query.
+      this.setState({ results: undefined });
     }
   }
 
@@ -34,8 +39,11 @@ class SearchPage extends Component {
    * This method calls search API, get the results and sync their shelves
    * with the current catalogue.
    */
-  callAjax(query) {
-    BooksAPI.search(query.trim()).then(data => {
+  callSearchAndSync(query) {
+    BooksAPI.search(query).then(data => {
+      if (data.error) {
+        return;
+      }
       // Sync search results data with the catalogue myCatalogueData
       const searchResultsBookIds = data.map(book => book.id);
       const myCatalogueBookIds = this.props.location.state.myCatalogueData.map(book => book.id);
@@ -46,8 +54,11 @@ class SearchPage extends Component {
           // Found book from search results in MyCatalogue
           data[searchIndex].shelf = this.props.location.state.myCatalogueData[myBookIndex].shelf;
         }
-      })
-      this.setState({ results: data });
+      });
+      // This is done in order to avoid setting the state by callSearchAndSync promise after the next empty query input.
+      if (queryState.length) {
+        this.setState({ results: data });
+      }
     });
   }
 
@@ -73,7 +84,7 @@ class SearchPage extends Component {
           </div>
         </div>
         <div className="search-books-results">
-          <BookList shelfType={this.state.results}/>
+          <BookList shelfType={this.state.results} />
         </div>
       </div>
     )
